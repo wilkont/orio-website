@@ -1,6 +1,8 @@
 {
     "private": true,
     "scripts": {
+        "build:spc": "node scripts/build-spc.mjs",
+        "test:spc": "node --test scripts/test-spc.mjs",
         "dev": "npm run development",
         "development": "mix",
         "watch": "mix watch",
