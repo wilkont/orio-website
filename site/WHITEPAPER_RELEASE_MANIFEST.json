@@ -1,7 +1,7 @@
 {
-  "commit": "c4278ca294037ca47a49efd6751cf24d243f965c",
-  "previousRoot": "/var/www/orio-spc/releases/85efad56b66d010f9b3b76751c0776912054887c",
-  "expectedConfigSHA256": "2b1c970d426b481da28953b82944eb60f5af822cfc4557c48b90c3fcbc01d752",
+  "commit": "9d32ffc086ddbe13949f89a467dc560b8d9e109b",
+  "previousRoot": "/var/www/orio-spc/releases/c4278ca294037ca47a49efd6751cf24d243f965c",
+  "expectedConfigSHA256": "7758df7d5a111556c7039523a758bb6a63579213247068d081fe67ae3bb904ca",
   "files": {
     ".well-known/security.txt": "6d4831677a97e60a0646241c00d83e771fd8be0ecfeda517d186f13295c246d5",
     "404.html": "ae574dbbebac0f4fa13da11830a45069ef7e0f73537b6e59cfb654ad681bb1c4",
@@ -38,7 +38,7 @@
     "stable-progressive-currency/index.html": "65964dac9e272ed5b1268a710027b599040e10525b9eb7ee8bb70943c13670b5",
     "stablecoins/index.html": "d76a195602f51473b4ba68db8211c3815f31155873b351e13f28e33d9d7a4d64",
     "status/index.html": "125e064ec3d7bda51d0b91603d36a38a185bb428bbbd3936a076ad175532501d",
-    "styles.css": "5c4737b6ee71b62577fd68b04a767262778e65d439dcdb08034a81430c7d93cb",
+    "styles.css": "4a3e60936a7d583f3c740634d8b0373840392c53f9e5501c9c569b71b59c3565",
     "terms/index.html": "63cd536f903e0be56d2fe70741b21f5179f6731fa3e499da821116b873e01ef3",
     "wallet/index.html": "bcc4af644924378521e488f734175d10d347f048ffb4ad7b2bbbd13a02993f59",
     "whitepaper-manifest.json": "7d5947546dc6d27559d440a8c91fdb431c63499a3f5066a0521e16983f6f75d8",
