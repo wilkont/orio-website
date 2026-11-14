@@ -62,20 +62,20 @@ def render_config(original, candidate):
     candidate_path = candidate.as_posix()
     if not re.fullmatch(r'/var/www/orio-spc/releases/[a-f0-9]{40}', candidate_path):
         raise ValueError('Unexpected candidate root')
-    if not re.search(r'server_name\s+orio\.io\s+www\.orio\.io\s*;', original):
+    if not re.search(r'(?m)^[ \t]*server_name\s+orio\.io\s+www\.orio\.io\s*;', original):
         raise ValueError('Unexpected virtual host')
     root = 'root /var/www/html/orio/build;'
     if original.count(root) != 1:
         raise ValueError('Unexpected existing document root')
     # The observed root location contains only the SPA fallback and comments.
-    pattern = r'location\s+/\s*\{([^{}]*)\}'
+    pattern = r'(?m)^[ \t]*location[ \t]+/[ \t]*\{([^{}]*)\}'
     matches = list(re.finditer(pattern, original))
     if len(matches) != 1:
         raise ValueError('Unexpected root location')
     body = re.sub(r'#[^\n]*', '', matches[0].group(1))
     if re.sub(r'\s+', ' ', body).strip() != 'try_files $uri /index.html;':
         raise ValueError('Unexpected root-location directives')
-    if not re.search(r'location\s+/api\s*\{', original):
+    if not re.search(r'(?m)^[ \t]*location[ \t]+/api[ \t]*\{', original):
         raise ValueError('Existing API location missing')
     csp = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
            "img-src 'self' data:; connect-src 'none'; form-action 'none'; "

@@ -27,6 +27,12 @@ server { listen 80; server_name orio.io www.orio.io; return 301 https://$host$re
 
 
 class DeploymentGuards(unittest.TestCase):
+    def test_commented_example_location_does_not_count_as_active_routing(self):
+        example = '\n# server {\n#   location / {\n#     try_files $uri $uri/ =404;\n#   }\n# }\n'
+        rendered = deployment.render_config(CONFIG + example, Path('/var/www/orio-spc/releases/' + 'a' * 40))
+        self.assertIn(example, rendered)
+        self.assertIn('root /var/www/orio-spc/releases/' + 'a' * 40 + ';', rendered)
+
     def test_failed_https_verification_restores_original_before_reload(self):
         writes, commands = [], []
         def verify():
