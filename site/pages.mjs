@@ -1,5 +1,10 @@
 // Publication copy reflects approved policy and observed evidence, not live reserve assertions.
 export const pages = [
+ ['launch-readiness','Launch readiness','Evidence for each part of a financial launch.',[
+  ['What is live','The public informational website is live. This page distinguishes it from the unavailable financial services and identifies the evidence required before those services can open.'],
+  ['What this matrix controls','This is a dated publication of engineering status, not a financial authorization mechanism. Editing a website file cannot enable signing, custody, account enrollment or real-money settlement.'],
+  ['Accountable acceptance','The monetary economics are approved. External review is advisory. Actual implementation, custody/reserve arrangements, customer controls and release-specific acceptance remain required.'],
+ ]],
  ['how-it-works','How ORIO works','Understand the flow of value.',[
   ['Purchase','The approved model charges a 1% conversion fee. With existing eligible holders, 20% of the collected fee goes to ORIO Company and the remainder appreciates eligible holdings before new tokens are minted. No extra ORIO is minted to distribute appreciation.'],
   ['Hold and send','Ordinary ORIO transfers have no additional protocol fee. Every on-chain action still carries a separately quoted, user-paid network fee. Company-managed execution is intended to remove the need for users to hold ETH.'],

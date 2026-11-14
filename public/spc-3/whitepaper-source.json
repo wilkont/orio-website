@@ -1,0 +1,444 @@
+{
+  "title": "ORIO Stable Progressive Currency",
+  "subtitle": "A reserve-accounted monetary protocol for conversion-funded appreciation and abstracted payments",
+  "version": "3.0.1",
+  "date": "2026-11-14",
+  "publisher": "ORIO.IO Lab",
+  "policyId": "orio-final-monetary-2026-11-13-v1",
+  "financialExecutionEnabled": false,
+  "abstract": "ORIO-SPC separates three functions that are often conflated: token ownership, redemption backing and the economic allocation of conversion fees. Supply begins at zero and expands through verified purchases, then contracts through verified redemptions. A mandatory 1% conversion fee funds company revenue and eligible-holder appreciation without minting extra tokens for that appreciation. Ordinary transfers carry no additional ORIO protocol fee, while users pay their separately authorized network costs through a company-managed Gas Treasury. This paper specifies the approved monetary rules, deterministic precision, reserve accounting, settlement, recovery and release boundaries. It distinguishes founder-approved policy, locally verified implementation, observed test-network connectivity and capabilities that remain unqualified for production. The informational website is live; public SPC 3 financial operations are not enabled. ORIO is not a promise of guaranteed appreciation, permanent dollar parity, uninterrupted liquidity or protection from loss.",
+  "sections": [
+    {
+      "id": "purpose",
+      "title": "1. Purpose and scope",
+      "paragraphs": [
+        "The project's objective is a payment and value-holding experience in which monetary rules are explicit, reserve movements reconcile and customers can understand the complete cost before authorizing an action. The proposed consumer experience hides blockchain administration while keeping financial obligations visible. A user should not need to buy ETH, operate a gas wallet, choose a network fee or understand a bundler simply to make an authorized payment.",
+        "The project discussion titled Stablecoins in African Mobile Payments is a source for this edition, particularly its clarified user-funded gas model, final monetary policy resolution and consumer website discussion. Earlier escrow and optional sponsorship proposals in that conversation were superseded by the founder-approved policy recorded in this specification. A conversation title does not establish any operating country, mobile-money integration, licensed payment corridor or commercial partnership. Those capabilities require their own documented implementation and authorization.",
+        "The original ORIO concept described an Elastic Infinite Supply mechanism: issuance follows purchases and destruction follows redemptions instead of an arbitrary pre-mint. In this specification, elastic means transaction-driven supply, and infinite means no discretionary fixed issuance cap is asserted by that concept. Neither term authorizes unbacked minting, bypasses integer limits or promises unlimited liquidity. Every implementation still has finite numerical, reserve and operational constraints.",
+        "This document is an engineering and monetary specification, not an assertion that the entire platform is deployed. It covers the approved economics and describes the intended production architecture with explicit implementation boundaries. The authoritative economic resolution is the founder-approved November 13, 2026 policy. Historical conversations explain the project's origin but do not override that resolution or establish security, legal status, reserve ownership or live service availability.",
+        "A strong protocol description must state what it cannot establish. Mathematical fee conservation does not establish asset solvency. A smart-contract event does not prove a bank arrangement. An internally balanced journal does not prove blockchain ownership. A public website does not prove participant eligibility. The architecture therefore treats those facts as separate evidence categories rather than using a single launch flag to imply all of them."
+      ]
+    },
+    {
+      "id": "design-principles",
+      "title": "2. Design principles and non-goals",
+      "paragraphs": [
+        "Five principles organize the design: issuance must be supported by validated asset value; fees must be conserved and allocated exactly; ownership changes must be attributable to finalized execution; gas expenses must remain separate from monetary backing; and administrative authority must be bounded, authenticated and auditable. If required evidence is missing or contradictory, the affected financial action must stop before it creates an unsupported outcome.",
+        "ORIO is not designed as an automated-market-maker liquidity-pool token. Its specified conversion price is a protocol reference computed from approved monetary transitions. Eliminating a particular AMM dependency does not eliminate reserve, access-control, smart-contract, oracle, operational or economic attacks. The earlier idea that the absence of a liquidity pool makes draining or liquidity failure impossible is not a security conclusion of SPC 3.",
+        "Likewise, stable progressive is a design name, not a promise that a market price cannot fall or that purchasing power is insured. The model can allocate conversion-funded value to eligible holders under its assumptions. It cannot manufacture external assets, eliminate issuer restrictions or compel a market to trade at its reference price. No claim of worldwide availability, regulatory classification, insurance, endorsement or complete decentralization is made by the name.",
+        "The consumer objective is simplicity rather than concealment. Each confirmation should identify the requested action, amount, conversion fee if applicable, network charge, maximum authorized debit, minimum output and relevant expiry. Receipts should explain what actually settled and what remains pending. The system must not describe an estimated, simulated or internally recorded outcome as finalized customer ownership."
+      ]
+    },
+    {
+      "id": "terminology",
+      "title": "3. Monetary terminology and state",
+      "paragraphs": [
+        "The master stablecoin is the currently elected settlement asset against which issuance and redemption are accounted. USDC is the initial selection. Eligible reserve assets are the assets recognized as supporting customer redemption liabilities after valuation controls, exclusions and encumbrances. Company revenue and Gas Treasury assets are separate categories and are not automatically eligible redemption backing.",
+        "The reference redemption price P is expressed in USD per whole ORIO. It is distinct from an exchange-traded price, a customer quote and a stablecoin's assumed face value. Supply S is outstanding ORIO, excluding burned tokens. A conversion fee F is collected in supported settlement units. Company allocation C and holder allocation H divide that collected fee under the applicable ordinary or exceptional rule.",
+        "An eligible holder is an owner whose tokens remain eligible under the specific conversion transition. A new purchaser is excluded from appreciation generated by its own purchase because appreciation is applied before its mint. Redeemed tokens are excluded from their own redemption appreciation because allocation is to the remaining supply. Eligibility is determined by the settlement state, not by a marketing label or an off-chain account name.",
+        "A settlement epoch is a bounded set of operations whose membership and applicable opening state have been fixed. A monetary checkpoint identifies the resulting supply, reference price, reserve obligations, rounding amounts, asset election and lifecycle phase. A reconciliation record connects authenticated external evidence to an immutable financial observation. None of these records alone grants a user permission to spend assets."
+      ],
+      "table": {
+        "columns": [
+          "Symbol",
+          "Meaning"
+        ],
+        "rows": [
+          [
+            "S / Q / T",
+            "Opening supply / total redeemed / remaining supply S-Q"
+          ],
+          [
+            "P / V",
+            "USD reference per ORIO / approved USD value per whole master token"
+          ],
+          [
+            "A / F / C / H",
+            "Gross native purchase units / fee / company share / holder share"
+          ],
+          [
+            "d / U",
+            "Master decimal precision / 10^18 ORIO atomic units per token"
+          ],
+          [
+            "R / D",
+            "Eligible reserve value / explicitly segregated rounding obligations"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "genesis",
+      "title": "4. Genesis and zero-holder issuance",
+      "paragraphs": [
+        "Original genesis begins with zero outstanding supply, zero ORIO redemption liabilities and an initial reference price of $1 per ORIO. That price is a starting reference, not a permanent fixed-dollar peg. A deposit must still be valued under the approved reserve controls. Material impairment or depegging must restrict issuance instead of treating every nominal USDC unit as an unquestionable US dollar.",
+        "When supply is zero, no existing eligible holder can receive appreciation from the opening purchase. The entire collected 1% purchase fee therefore goes to ORIO Company. The remaining valued deposit supports the newly issued tokens at the approved opening price. This is an explicit exception to the ordinary company/holder split. No genesis appreciation escrow is created under the final approved policy.",
+        "For an illustrative original purchase of 1,000 USDC valued at $1 each, the fee is 10 USDC, company revenue is 10 USDC and 990 USDC supports 990 ORIO at the $1 reference. The purchaser also pays its separately authorized network charge. That charge must not silently reduce the 990 USDC backing in this example. Real quotations must use current valuation and execution evidence rather than assuming these illustrative conditions.",
+        "A first purchaser in a later issuance cycle also follows the zero-holder allocation exception, but does not necessarily start at $1. Reopening retains the last valid reference after the zero-supply reconciliation described below. Distinguishing original genesis from later reopening prevents a supply reset from becoming an arbitrary opportunity to rewrite the economic reference or hide unresolved obligations."
+      ]
+    },
+    {
+      "id": "purchase",
+      "title": "5. Ordinary purchases and pre-mint appreciation",
+      "paragraphs": [
+        "For a purchase with positive eligible supply, the mandatory conversion fee is 1% of gross native settlement units, rounded up at the final applicable settlement boundary. The ordinary company allocation is the collected fee divided by five and rounded down. Eligible holders receive the entire remaining collected fee. This remainder rule conserves every native unit while avoiding a company allocation above its ordinary entitlement.",
+        "Existing holders appreciate before the new purchaser is minted. The holder allocation is valued using the approved master valuation and divided by existing eligible supply to produce the price increment. The new purchaser's net valued contribution is then divided by the updated reference price, with minted units rounded down to ORIO precision. Reversing these operations would let the purchaser share in its own fee allocation and would implement different economics.",
+        "The equations below use whole-token supply and a current master value V. A is an integer number of native master units and d is that asset's decimals. The price equation is the ideal real-number expression; production settlement additionally applies the approved USD36 price quantization and explicit residual accounting. It must not silently discard a holder obligation merely because a displayed price has fewer digits.",
+        "Customer reserve accounting increases by the deposited native units less the company allocation, not simply by the purchaser's net mint backing. The holder share remains customer backing and supports existing eligible tokens. In an ideal unquantized transition, the new-token contribution plus the holder allocation explains that reserve increase. Quantized transitions reconcile the remaining difference through named rounding obligations rather than treating it as unexplained surplus."
+      ],
+      "equations": [
+        "F = ceil(A / 100); C = floor(F / 5); H = F - C",
+        "P_after = P_before + (H * V / 10^d) / S",
+        "Minted atoms = floor(((A - F) * V / 10^d) * 10^18 / P_after)"
+      ]
+    },
+    {
+      "id": "redemption",
+      "title": "6. Redemption and common snapshot settlement",
+      "paragraphs": [
+        "Redemptions in the same eligible batch use a common opening reference price. Each user's gross redemption value is determined from that opening state and the submitted token quantity. It is converted to native master units using the approved valuation. The 1% fee is rounded up from the exact gross native value, and the stablecoin payout is rounded down after that fee. A redemption producing no valid positive payout must be rejected.",
+        "Let Q be all tokens redeemed in the batch and T be opening supply minus Q. When T is positive, each ordinary company allocation is floored and each remaining collected fee unit is allocated to eligible remaining supply. The remaining holders' reference rises by the total valued holder allocation divided by T. None of the redeemed tokens receives that batch's redemption appreciation.",
+        "Fixing a common opening price is a fairness control within a batch, not a complete defense against transaction-order manipulation. Authentic epoch membership, immutable inclusion order, quote expiry, custody locks and minimum-output consent are still required. Purchases must not be inserted opportunistically into a frozen redemption epoch. User-chosen identifiers must not become a covert means of choosing priority.",
+        "An execution failure must not leave a partial burn, missing payout or consumed authorization that cannot be reconciled. Qualification tests execute actual signed contract calls in a local EVM and check atomic rollback for failed payouts. Those results support the implementation boundary tested; they do not prove public-network inclusion, present reserve ownership, oracle authenticity or every possible interaction with a hostile token contract."
+      ],
+      "equations": [
+        "T = S - Q; gross native value for user i = q_i * P_open * 10^d / V",
+        "F_i = ceil(gross native value_i / 100); payout_i = floor(gross native value_i - F_i)",
+        "If T > 0: P_after = P_open + sum(H_i * V / 10^d) / T"
+      ]
+    },
+    {
+      "id": "worked-examples",
+      "title": "7. Worked monetary examples",
+      "paragraphs": [
+        "These independent examples assume a $1 master valuation, sufficient reserves, no additional valuation movement and quantities for which the shown native amounts are exact. Network gas is additional in every case. They are illustrations of the approved model, not actionable quotations, expected returns or proof that corresponding production balances exist.",
+        "For an ordinary purchase starting from 1,000 ORIO at a $1 reference, a 1,000 USDC purchase pays a 10 USDC conversion fee. The company receives 2 USDC and existing holders receive 8 USDC of backing. The reference becomes $1.008 before minting. The net 990 USDC mints approximately 982.142857 ORIO, rounded down to atomic precision; the exact retained residual is recorded separately. Total customer backing becomes 1,998 USDC under these assumptions.",
+        "For a 500 ORIO redemption out of 1,000 at a $1 snapshot, gross value is 500 USDC, the fee is 5 USDC, payout is 495 USDC, company allocation is 1 USDC and the holder allocation is 4 USDC. The remaining 500 ORIO has a $1.008 reference and 504 USDC of backing. The price increase is an allocation of existing value, not an unexplained creation of 4 new US dollars.",
+        "For a complete 1,000 ORIO redemption at a $1 snapshot, payout is 990 USDC and the entire 10 USDC fee goes to the company. No holder appreciation is calculated after supply becomes zero. The retained reference remains $1 pending reconciliation. Displayed approximations in this section never replace the exact integer and rational calculations used by settlement."
+      ],
+      "table": {
+        "columns": [
+          "Scenario",
+          "Fee",
+          "Company / holders",
+          "Reference behavior"
+        ],
+        "rows": [
+          [
+            "Original 1,000 USDC genesis",
+            "10 USDC",
+            "10 / 0 USDC",
+            "$1 original reference; 990 ORIO"
+          ],
+          [
+            "1,000 USDC ordinary purchase",
+            "10 USDC",
+            "2 / 8 USDC",
+            "$1 to $1.008 before minting"
+          ],
+          [
+            "500 of 1,000 ORIO redeemed",
+            "5 USDC",
+            "1 / 4 USDC",
+            "$1 to $1.008 on 500 remaining"
+          ],
+          [
+            "All 1,000 ORIO redeemed",
+            "10 USDC",
+            "10 / 0 USDC",
+            "Retain $1; reconcile before reopen"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "precision",
+      "title": "8. Precision, rounding and conservation",
+      "paragraphs": [
+        "ORIO token precision is 18 decimals and initial USDC precision is 6. The monetary engine represents the USD reference with 36-decimal integer precision and carries exact rational residuals where required. Settlement and persistence boundaries use canonical integer strings. Binary floating-point arithmetic is not used to determine financial settlement amounts. Values outside safe bounds reject before finality instead of wrapping or being approximated.",
+        "Minted token amounts and stablecoin payouts round down. Conversion fees round up to the smallest applicable settlement unit when necessary. In ordinary conversions, the company share rounds down and eligible holders receive the collected-fee remainder. These rules mean a tiny native-unit conversion can have a displayed effective fee different from exactly 1%; the interface must communicate the final amount rather than imply unlimited fractional precision.",
+        "Rounding is not permission to confiscate value. Minting, payout and holder-price quantization differences are recorded with explicit provenance in segregated obligations and included in reconciliation. They are not automatically company revenue. The statistical USD54 monetary memo used by the control ledger is an accounting unit for exact residual attribution, not a separate spendable cash asset to add to reserves a second time.",
+        "Minimums are output-based: a purchase must create at least one smallest ORIO unit and a redemption must produce a positive supported payout after the fee. Dust remains owned. A transaction whose execution cost exceeds its authorized limits must be rejected or re-quoted, not forcibly executed. If a positive holder allocation cannot be represented safely within the approved bounds, the affected settlement pauses rather than changing the allocation rule."
+      ]
+    },
+    {
+      "id": "residual-supply",
+      "title": "9. Tiny residual supply and concentration",
+      "paragraphs": [
+        "The approved residual-supply policy does not introduce a discretionary threshold. If any positive supply remains after a redemption batch, that eligible supply receives the entire ordinary holder allocation, subject to explicit quantization accounting. There is no residual-supply escrow and no automatic redirection of that allocation to the company. A numerical or reserve-safety limit must stop the batch before finality rather than secretly revise the economics.",
+        "This rule has a significant concentration consequence. Starting with 1,000,000 ORIO at a $1 reference and redeeming 999,999 leaves one ORIO. The 9,999.99 USDC fee allocates 1,999.998 to the company and 7,999.992 to the remaining holder. The resulting reference for that one token is $8,000.992 under the stated assumptions. This is the allocation of the remaining backing, not evidence of an investment opportunity or a universal wealth increase.",
+        "An attacker may try to benefit from retaining dust, splitting accounts, influencing batch membership, observing another user's redemption or exploiting quote timing. The project must analyze those strategies across multiple users and wallets, not only a single closed account cycle. A common snapshot helps define a fair batch but does not by itself eliminate MEV, adverse selection, collusion, market price movement or external liquidity constraints.",
+        "The engineering evidence includes tiny-supply cases, permutations, rounding conservation and closed self-owned conversion cycles under constant valuation. It does not establish the absence of profitable manipulation in every market or production environment. Any demonstrated exploitable strategy within the actual production threat model requires resolution before financial activation. Disclosing this consequence is part of accurately specifying the chosen policy."
+      ]
+    },
+    {
+      "id": "reopening",
+      "title": "10. Full redemption and zero-supply reopening",
+      "paragraphs": [
+        "A full-supply redemption uses the common snapshot reference, charges the mandatory fee, allocates all of that fee to the company and burns the submitted supply. The protocol records a zero-supply checkpoint rather than evaluating a holder-price increment with a zero denominator. Outstanding redemption, rounding, fee and gas obligations must still be accounted for; zero token supply is not proof that every operational obligation has disappeared.",
+        "The last valid redemption reference is retained. Reopening does not automatically return ORIO to $1. If the last valid reference was $1.25, the next issuance cycle opens at $1.25 only after required obligations, reserve accounts and fee accounts reconcile. Its first purchaser follows the zero-holder fee exception. The lifecycle explicitly distinguishes original genesis, active issuance, zero-supply pending reconciliation and reconciled reopening.",
+        "The reconciliation authorization must bind the actual monetary state and validated obligation assertions. An operator cannot infer zero obligations solely from an on-chain event or an empty balance display. The finalized accounting importer records the checkpoint and shared receipt ownership without fabricating a meaningless zero-amount monetary journal. Historical checkpoints remain immutable and traceable to their supporting evidence.",
+        "Reopening must stop if the retained reference is unsupported because of reserve impairment, legal restrictions or unresolved liabilities. In that situation, the applicable recovery and governance process must determine what is permitted. The continuity rule is not an unconditional promise to issue or redeem at a reference that actual asset value can no longer support."
+      ]
+    },
+    {
+      "id": "reserves",
+      "title": "11. Reserve architecture and solvency",
+      "paragraphs": [
+        "The reserve design separates eligible redemption backing from company conversion revenue, gas assets and other obligations. The intended invariant is that eligible assets valued under approved controls cover outstanding token redemption liabilities plus explicit residual obligations. An internally calculated coverage ratio is meaningful only if asset ownership, custody, encumbrances, valuation, liabilities and timestamp are all supported by evidence.",
+        "The reserve vault candidate recognizes actual incoming and outgoing token deltas and segregates company cash. Controller-authorized issuance and payout paths are tested locally. Direct arbitrary minting, reserve sweeps and withdrawals beyond recognized company funds are not authorized behavior. Those code properties do not establish that a deployed production vault exists or that any real-world custodian, issuer or signer has fulfilled its obligations.",
+        "A reserve monitor must consider depegging, stale prices, blocked assets, issuer restrictions, contract-address changes, transfer failures and concentration. Deposits should be restricted when approved valuation evidence says issuance is unsafe. A pause must communicate what remains available, including whether solvent authorized redemptions can proceed. Silent repricing or a new master label must never conceal an impairment.",
+        "The public transparency view must distinguish unavailable data from zero balances. Live circulating supply, eligible reserve value, coverage, composition and production contract addresses are currently unverified for SPC 3 and must not be presented as established facts. A credible future publication identifies the deployment, valuation method, asset and obligation scope, observation time, evidence references and any exclusions or limitations."
+      ],
+      "equations": [
+        "Eligible reserve USD value >= token supply * supported reference price + segregated residual obligations",
+        "Company revenue and Gas Treasury assets are excluded unless independently authorized as eligible backing"
+      ]
+    },
+    {
+      "id": "master-election",
+      "title": "12. Master stablecoin election and migration",
+      "paragraphs": [
+        "USDC is the initial master stablecoin selection, not a claim of Circle endorsement or a standing guarantee of dollar value. The underlying asset has its own terms, restrictions and risk allocation; eligibility for direct issuer services is a separate matter from holding tokens [R6]. Reserve controls must evaluate actual conditions rather than importing a stablecoin's name as a solvency proof.",
+        "Approved secondary assets must be converted into the active master before ORIO issuance is triggered. A secondary-asset deposit, route execution and receipt must be attributed to the same authorized intent. Failed or incomplete conversion cannot be treated as a completed master deposit. Refunds must be traceable and must not mint ORIO or create a second customer claim for the same external event.",
+        "Master migration changes the reserve settlement asset through the authorized election process. It must not mint or burn ORIO, change holder token quantities, manufacture appreciation, levy the ordinary conversion fee or hide a reserve loss. The implementation maintains immutable election history so accounting can interpret old-asset receipts and historical company withdrawals without pretending the old asset never existed.",
+        "The intended autonomous reserve process is constrained automation: eligibility checks, valuation evidence, governance authority, timelocks, loss limits and pause conditions define what automation may do. It is not an unconstrained system permitted to trade customer backing speculatively. The local migration importer verifies finalized replacement events and journals native asset movements and explicit gain/loss memo values; qualified production risk providers and migration operations remain separate work."
+      ]
+    },
+    {
+      "id": "gas-policy",
+      "title": "13. Mandatory user-paid network gas",
+      "paragraphs": [
+        "Every purchase, redemption, ordinary ORIO transfer and other user-authorized on-chain operation must include its applicable network gas paid by the user. There is no general company-sponsored gas policy. ORIO Company acts as the operational intermediary through a separate Gas Treasury, advancing network-native assets when necessary while charging the user only under the authorized quotation and reconciliation rules.",
+        "Network charges are financially separate from the 1% monetary conversion fee. They do not create holder appreciation, company conversion-fee revenue, new ORIO issuance or a change in the monetary reference price. They must not silently reduce eligible redemption backing. A separately authorized ORIO payment to the Gas Treasury is not itself an ordinary redemption that generates appreciation.",
+        "The quotation must cover the complete expected execution path. Base documentation identifies L2 execution and L1 publication/security costs [R4]. ORIO must account for applicable account, factory, EntryPoint, paymaster, batching and settlement overhead instead of presenting a single partial gas estimate as the complete cost. A simple transaction count does not establish correct attribution when several operations share a bundle.",
+        "Users authorize a maximum network charge, payment denomination, conversion rate, operation set and expiry. The actual cost is reconciled after execution, and unused amounts are refunded or credited. A shortfall must not become an automatic debit above the authorized maximum. Platform-caused failures must not be charged to customers without an approved and disclosed policy. Gas charges and network expenses must remain attributable to a unique action identifier."
+      ]
+    },
+    {
+      "id": "account-abstraction",
+      "title": "14. Account abstraction and the Gas Treasury",
+      "paragraphs": [
+        "ERC-4337 provides a higher-layer account-abstraction model using UserOperations, bundlers, an EntryPoint and optional paymasters [R5]. ORIO's qualification architecture uses that model to separate the customer's economic authorization from the operational act of paying the network. An advertised provider EntryPoint list is capability information, not proof that ORIO's custom account, factory and treasury paymaster are admitted or safe.",
+        "The Gas Treasury must hold sufficient operational ETH, fund approved execution infrastructure, maintain low-balance alerts and reconcile replenishment. Its inventory, advances, collected charges, actual expenditures, refunds, pending obligations and failed-operation costs are separate ledger accounts. Treasury depletion or unavailable providers must stop affected execution safely; an unavailable network cannot be turned into an assurance of uninterrupted service.",
+        "Execution ordering must avoid the circular dependency of needing gas before collecting the user's charge. The design uses authenticated reservations or supported smart-account/paymaster flows so a funded authorization exists before a treasury signer releases execution authority. Once an operation may have been signed or submitted, cancellation must not simply free the same obligation as though no network execution could still occur.",
+        "The current read-only provider adapters cannot sign, sponsor, simulate admission or broadcast. Separate settlement and bundler readers maintain explicit method allowlists, HTTPS restrictions, bounded responses, timeouts and credential-safe failures. Production activation requires actual deployed-bytecode verification, signer custody, prefunding, admission testing, cost attribution, failover and monitoring. Free provider account creation did not supply those qualifications."
+      ]
+    },
+    {
+      "id": "dual-ledger",
+      "title": "15. Dual-ledger financial control",
+      "paragraphs": [
+        "Ledger A is the financial control ledger: immutable balanced journals, application entitlements, gas obligations, settlement references and evidence links. Ledger B is finalized on-chain ownership and execution. The purpose of two ledgers is explicit reconciliation, not two independently spendable claims on the same asset. A database administrator changing a balance cannot create authentic on-chain ownership.",
+        "Each recognized external event has one global settlement owner so retries, duplicate webhooks and competing adapters cannot claim the same receipt twice. A journal, evidence record and outbox event commit atomically. Delivery can be at least once, but downstream consumers deduplicate using stable identifiers. Fenced leases prevent an expired worker from acknowledging a newer worker's delivery as its own.",
+        "Corrections use compensating entries, not edits to history. Financial units and normal-balance semantics are explicit. ORIO issuance, customer reserve backing, company cash, gas prepayments and statistical valuation memo entries cannot be mixed merely because they appear in one consolidated interface. A correct accounting report avoids counting a memo obligation as an additional spendable reserve asset.",
+        "Hash-linked journals improve internal evidence but cannot defeat an administrator who replaces all unanchored history. Independent checkpoint retention outside the database remains a technical requirement. That separation is not an external-review approval requirement: external review is advisory under the owner-approved release policy, while authentic checkpoints, finality and reconciled evidence remain engineering controls."
+      ]
+    },
+    {
+      "id": "finality",
+      "title": "16. Canonical evidence and reconciliation",
+      "paragraphs": [
+        "The accounting importer requires configured sources to agree on canonical finalized evidence. It pins the relevant deployment, asset election, controller, currency, reserve vault, operation, event boundaries and monetary checkpoint. A funding transfer elsewhere in the same bundle cannot satisfy an unrelated operation merely because both appear in one transaction receipt.",
+        "The importer independently replays the approved arithmetic and compares expected fees, allocations, supply, reference, backing, residuals and lifecycle state. Only then does it commit receipt ownership and asset-balanced journals. Missing transitions, conflicting versions, an already consumed event or unobserved company withdrawal stop the import rather than leaving a partially updated financial state.",
+        "Two distinct source labels are not evidence of operational independence. Deployment must verify the actual providers and their failure domains, history availability, finality interpretation and supported chain. Disagreement, stale evidence, timeouts or reorganization handling need explicit operational behavior. A one-time successful block read is not a service-level guarantee.",
+        "On November 14, 2026, account-owned Alchemy and Infura Base Sepolia endpoints agreed on finalized block 58794597; a Pimlico read-only capability check advertised the expected EntryPoint v0.8. These observations are test-network evidence only. Continuous canonical indexing, complete transfer backfill, production historical import and live customer-intent adapters remain separate acceptance items."
+      ]
+    },
+    {
+      "id": "authorization",
+      "title": "17. Consumer authorization and receipts",
+      "paragraphs": [
+        "A customer authorizes a specific financial action, not an unbounded instruction to an operator. Signed material must bind the chain and deployment, operation or bundle, amounts, recipient, fee limits, expiry, nonce and minimum supported output. Treasury authority is separate from customer authority. An application's ability to display or prepare an action is not permission to sign it on the customer's behalf.",
+        "Receipts should identify the customer-facing transaction ID, external execution reference, requested and delivered amounts, conversion fee, network maximum, actual charge, payment denomination, rate used, refund or credit and settlement state. Pending, failed, finalized and reconciled must have distinct meanings. Customer statements should not collapse a treasury advance, customer debit and network expenditure into one unexplained balance change.",
+        "The consumer site must explain why a transaction cannot proceed when a balance, authorization, valuation or network-cost condition is unsatisfied. It must never hide a fee inside a changed recipient amount or imply that a failed network action necessarily cost nothing. Retry behavior must preserve idempotency and avoid producing duplicate charges, duplicate mints or multiple redemption claims.",
+        "Public SPC 3 account enrollment, wallet authorization and live financial APIs are not enabled by this publication. The current informational pages and fee explorer collect no customer credentials or funds. Publishing a page named Sign In or Convert is not a substitute for the authenticated, qualified service behind those actions."
+      ]
+    },
+    {
+      "id": "recovery",
+      "title": "18. Wallet recovery and account safety",
+      "paragraphs": [
+        "The recovery candidate uses multiple immutable guardians, a quorum, a waiting period, owner cancellation and execution freezing during a pending recovery. The tested configuration family supports two to five guardians, a threshold of at least two, and a two-to-thirty-day delay. Those are contract-candidate bounds, not an announcement that a consumer recovery service is currently available.",
+        "Authorization includes an owner revision and monotonic proposal nonce so replacing an owner does not revive signatures from an earlier ownership revision. Pending recovery blocks signatures and execution, including attempts to propose recovery in the middle of a validated batch and continue with remaining calls. Local tests check the replacement owner's execution and rejection of the old owner's authority.",
+        "A practical recovery product also needs secure enrollment, guardian understanding, notification channels, compromise response, support escalation, privacy rules, continuity procedures and user-paid execution handling. Delayed contract authority alone does not ensure a person can regain access in the real world. Loss of enough guardians, collusion or unavailable notification channels can still harm the user.",
+        "The company must not portray recovery as an unrestricted ability to seize customer assets or as proof that keys never matter. The production custody model must disclose who can authorize, pause, recover or move assets and under which conditions. Estate and exceptional-access procedures require their own approved implementation and applicable legal handling rather than an undocumented administrator override."
+      ]
+    },
+    {
+      "id": "governance",
+      "title": "19. Governance, automation and administrative powers",
+      "paragraphs": [
+        "Governance controls changes to the eligible asset set, reserve transitions, operational pauses and release parameters within the approved authority model. Actions must be authenticated, authorized, logged and reviewable. Timelocks and immutable minimum-delay bounds can constrain specified changes, but a timelock's existence does not prove that every relevant privilege is constrained.",
+        "Automation must operate inside those boundaries. Monitoring can propose or trigger approved protective actions when documented conditions are met; it must not invent policy, trade backing speculatively or suppress an unfavorable reserve valuation. Material changes to fee allocation, reopening, holder eligibility or residual ownership need explicit policy authorization and consistent contract/accounting implementation.",
+        "Release acceptance binds an exact artifact, deployment identity, chain, contract set, evidence digest, mode and expiry. The approved owner-accountable policy permits one authorized owner to cover multiple legal, security, custody, financial and operational categories. External review is advisory. A missing independent reviewer therefore is not, by itself, a waiting requirement; missing actual readiness evidence remains a separate issue.",
+        "No production trust key, signature, custody arrangement or acceptance record is fabricated by this paper. Contract candidates that deliberately reject mainnet must be replaced or qualified through an explicit production engineering process. Removing a reviewer requirement or editing a website flag cannot turn an unimplemented production path into a safe financial launch."
+      ]
+    },
+    {
+      "id": "threat-model",
+      "title": "20. Threat model and failure containment",
+      "paragraphs": [
+        "The threat model includes malicious customers, compromised signers, hostile asset contracts, provider disagreement, stale valuation, relayer failures, duplicated external notifications, abusive requests, governance misuse and database administrators capable of changing local state. Economic threats include concentration, ordering, collusion, rounding exploitation and changes in asset value or liquidity across a conversion cycle.",
+        "Controls include explicit authorization domains, nonces and owner revisions; exact integer arithmetic; custody delta checks; redemption locks; immutable event ownership; atomic journal/outbox commits; bounded external reads; multiple canonical evidence sources; segregated assets; and pause conditions. Each control has a trust boundary and failure behavior. Claims of complete security require more than listing these mechanisms.",
+        "An incident plan must distinguish deposit-only restrictions from broader execution pauses, preserve evidence, identify potentially in-flight signed operations and explain customer communication. Recovery must reconcile obligations before reopening. A database rollback cannot roll back an already finalized blockchain transfer; compensating accounting and external evidence must resolve that difference.",
+        "The absence of an AMM pool does not remove access-control or reserve-drain risks. The absence of an arbitrary pre-mint does not ensure solvency. Successful fuzzing does not eliminate unknown bugs. The project therefore avoids absolute claims such as impossible to hack, inflation-proof or guaranteed never to have a liquidity issue. The required standard is evidence appropriate to the actual deployment and tested threat model."
+      ]
+    },
+    {
+      "id": "operations",
+      "title": "21. Production operations and data protection",
+      "paragraphs": [
+        "A financial workload needs controlled deployment identities, separate migration and runtime database roles, verified TLS and hostnames, private connectivity where required, secret management, backups, restore drills, monitoring and an incident process. The public website's verified static backup is useful rollback evidence for that website, not a substitute for a consistent financial database backup or a full disaster-recovery exercise.",
+        "Production migrations must identify installed versions and checksums, verify recoverability and apply only unapplied changes. The historical platform receipt establishes initial database migrations 001 and 002; later monetary, gas and settlement migrations remain a separate hosted-upgrade task. An operator must not assume that console visibility or a successful local test establishes the actual schema currently installed in a different account.",
+        "Operational metrics should include reconciliation lag, reserve coverage and valuation age, pending obligations, gas inventory, provider divergence, failed execution, abnormal retry rates and access changes. Customer-facing status must use observation times and must not substitute a dated engineering snapshot for a live monitor. Logs and support tools must avoid exposing credentials, recovery material and customer data unnecessarily.",
+        "The website is deployed on the existing legacy AWS host while the new financial platform's target account remains separate. That distinction matters for access, audit, backup and cutover plans. Website publication did not modify the financial database, move reserves, grant IAM permissions or activate mainnet contracts. Production readiness must be evaluated at the correct deployment boundary."
+      ]
+    },
+    {
+      "id": "business-developers",
+      "title": "22. Merchant and developer infrastructure",
+      "paragraphs": [
+        "The intended business experience includes authorized representatives, scoped team permissions, payment approvals, limits, statements, merchant checkout, settlement reporting, API access and webhook configuration. Those capabilities require authenticated services and qualified financial integrations. The current informational site does not claim that merchant enrollment, settlement or commercial availability is already established.",
+        "Developer interfaces must use exact asset units and stable identifiers. Financial endpoints require authentication, scoped authorization, rate controls, replay protection and explicit errors. Webhooks need authenticated delivery, retry semantics and recipient deduplication. No developer should infer a production SPC 3 endpoint or signing authority from a legacy path that happens to remain reachable on the website host.",
+        "Integration documentation should distinguish preparation, submission, finalization and accounting import, and describe which party holds authority at each step. A sandbox result must not be reclassified as a real deposit. SDKs must bind the same chain, contract, nonce, operation and quote constraints as the contracts and control ledger rather than offering a looser alternative execution path.",
+        "Partner names are not integrations. Publishing technical references to Base, USDC or ERC-4337 does not establish a commercial relationship, issuer endorsement, on-ramp agreement or support in any country. Actual partner arrangements, service terms, supported assets and jurisdictions must be confirmed before the corresponding customer feature is offered."
+      ]
+    },
+    {
+      "id": "legal-privacy",
+      "title": "23. Eligibility, legal terms and privacy",
+      "paragraphs": [
+        "The public website is informational and does not accept funds or enroll financial customers. The ORIO.IO Lab brand does not by itself establish the exact operating entity, licensing perimeter, permitted jurisdictions, insurance, custody relationship or regulatory classification of a future financial service. Those facts must be determined and reflected accurately in the eventual customer terms and onboarding controls.",
+        "A monetary wrapper does not make the underlying asset's legal restrictions disappear. The earlier vision of independence from a master asset's classification is an architectural objective, not a legal conclusion. The whitepaper does not assert that ORIO is exempt from applicable requirements or that calling a system decentralized determines its treatment in any jurisdiction.",
+        "The informational fee explorer runs locally in the browser and does not transmit its amounts to a financial service. Ordinary hosting requests and voluntary emails can still involve information processed by hosting or mail systems. Production enrollment needs a complete privacy and data-handling specification covering the actual operating entity, purposes, retention, rights, identity providers, recovery channels and incident response.",
+        "A future customer must be able to see current service terms, eligibility, fees, reserve disclosures and relevant risks before committing funds or authorization. Viewing the site or downloading this paper is not a financial service agreement, participant approval or authorization for a transaction. This paper does not replace the required service-specific disclosures."
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "24. Verification evidence and its limits",
+      "paragraphs": [
+        "The November 14 engineering baseline passed 181 backend, PostgreSQL and local execution integration tests, 39 contract tests, four credential-session security tests and six Python reference tests, together with strict TypeScript and packaged-service TLS, non-root and paused-state checks. Website deployment additionally verified the static source and served content on ORIO.IO and www. Evidence is scoped to its artifact and observation time, not an assurance that every future change inherits those results.",
+        "Contract tests execute signed calls in a pinned local EVM and include monetary transitions, failed payout rollback, rounding, full redemption and reopening, reserve migration, company withdrawals, recovery and EntryPoint/paymaster behavior. Accounting tests include atomic receipt ownership, concurrent retry, journal rollback, cross-module duplication and reserve disagreement. Synthetic funding and finality fixtures are not real-world reserves or production chain evidence.",
+        "The whitepaper's examples and equations must remain consistent with the approved engine. Property tests and exact rational reference vectors help detect conservation and quantization errors, but their scope is finite. A test that a single actor cannot profit in a closed constant-valuation cycle is not proof against cross-user ordering, collusion, external market movement or a new implementation defect.",
+        "External review remains advisory under the explicit owner policy. The project nevertheless requires actual technical qualification, reproducible release evidence and accountable acceptance. A website publishing passed counts is not entitled to hide a failed later test, a missing deployment adapter or an unresolved economic exploit. The public launch matrix should show these differences directly."
+      ]
+    },
+    {
+      "id": "launch-path",
+      "title": "25. Path to financial activation",
+      "paragraphs": [
+        "The website can be production-served while financial capabilities remain unavailable. Moving beyond that boundary requires actual customer authorization, financial workload deployment, reserve and custody arrangements, production contracts, live execution cost attribution, recovery operations and release-specific acceptance. A completed whitepaper improves clarity and reviewability; it does not satisfy those implementation tasks by itself.",
+        "The first qualification milestone is a deployed, observable service with the correct schema, least-privilege credentials, recoverable data and canonical evidence ingestion. The next is controlled test-network execution using the intended accounts, factory, treasury paymaster, signer custody and complete gas accounting. Real provider admission and failure drills must replace assumptions inferred from public capability lists.",
+        "Before any real-money activation, the exact supported operating model, jurisdictional eligibility, service/privacy terms, reserve assets and control rights must be established. Consumer flows must be tested end to end, including failures, retries, withdrawals, zero-supply reconciliation and recovery. Public release artifacts must identify the actual chain and contracts, and the website must publish verified financial data rather than test balances.",
+        "Financial activation is therefore an evidence-backed release decision, not a marketing date or a database Boolean. The accountable owner may accept all required categories when supported by actual evidence; no separate outside-review waiting period is imposed by current policy. Until those conditions are met, the published state remains financial execution disabled and the interface must communicate that state consistently."
+      ],
+      "table": {
+        "columns": [
+          "Area",
+          "Observed state",
+          "Required next evidence"
+        ],
+        "rows": [
+          [
+            "Economics",
+            "Founder-approved",
+            "Consistent production execution"
+          ],
+          [
+            "Core engine and vault",
+            "Locally tested candidates",
+            "Qualified production contracts and custody"
+          ],
+          [
+            "Provider connections",
+            "Test-network reads passed",
+            "Admission, costs, history and failover drills"
+          ],
+          [
+            "Public website",
+            "Live informational release",
+            "Accurate data and customer-feature linkage"
+          ],
+          [
+            "Customer accounts",
+            "Not open",
+            "Authentication, consent and recovery operations"
+          ],
+          [
+            "Financial database",
+            "Historical initial schema",
+            "Verified backup and incremental hosted upgrade"
+          ],
+          [
+            "Financial launch",
+            "Disabled",
+            "Actual readiness and release acceptance"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "risk-register",
+      "title": "26. Material risks and unresolved dependencies",
+      "paragraphs": [
+        "Economic risk includes activity dependence, extreme residual concentration, transaction ordering, stablecoin valuation changes and possible differences between a protocol reference and an external market price. Liquidity risk includes unavailable settlement assets, withdrawal restrictions, execution outages and obligations that cannot be settled at the expected time. No fee rule eliminates those risks.",
+        "Technical risk includes contract defects, compromised signers, invalid authorization, hostile tokens, oracle error, reorganization handling, provider failure and incomplete indexing. Operational risk includes misconfigured permissions, failed backups, lost recovery participants, insufficient treasury inventory, slow reconciliation and an inability to communicate or contain an incident. A static site being reachable is not proof that those systems are healthy.",
+        "Legal and counterparty risk includes jurisdiction-specific restrictions, changing service requirements, issuer controls, custody dependencies and unfinalized terms. This paper does not resolve classification, establish a license or certify a reserve arrangement. No production reserve attestation or insurance coverage is asserted. The eventual customer service must disclose the actual arrangements and their limitations.",
+        "The implementation record remains incomplete for public financial activation. In particular, deployed consumer enrollment and recovery, complete production chain indexing and intent adapters, qualified risk/custody providers, actual custom-paymaster admission and full Base fee attribution remain outstanding. This list is a candid release boundary, not a suggestion that the economics remain unapproved or that external review is a mandatory hold."
+      ]
+    },
+    {
+      "id": "invariants",
+      "title": "27. Normative accounting and execution invariants",
+      "paragraphs": [
+        "The following invariants express what an implementation must preserve before a transition can be called settled. Collected conversion fees equal company plus holder allocation under the correct exception. Gas never enters that allocation. Purchases appreciate eligible existing supply before minting; redemption batches exclude all redeemed tokens from their own appreciation. No extra token mint distributes appreciation.",
+        "Every issuance is attributable to a validated, unconsumed master-asset contribution and current valuation evidence. Every redemption is attributable to authorized ownership, a valid snapshot, exact burn and supported payout. Supply, reserve movements, company cash and rounding obligations reconcile across the controller checkpoint and asset-balanced journals. A missing or conflicting event cannot be repaired by inventing a balance.",
+        "Retries cannot consume the same external event twice. A correction cannot rewrite committed financial history. A signed or potentially submitted gas obligation cannot be canceled as though execution were impossible. A customer cannot be charged above the authorized network maximum without renewed consent. Pending recovery cannot preserve unrestricted old-owner execution.",
+        "A zero-supply reopening retains the last valid reference and waits for reconciled obligations. A master replacement does not mint, burn, levy ordinary conversion fees or conceal loss. An unsupported reserve state restricts affected activity. A public status or whitepaper cannot claim financial activation merely because these invariants are described or tested locally."
+      ]
+    },
+    {
+      "id": "references",
+      "title": "28. References and document governance",
+      "paragraphs": [
+        "The founder-identified ChatGPT conversation Stablecoins in African Mobile Payments was consulted for its monetary-policy resolution, explicit mandatory user-paid gas instructions and consumer website discussion. The older ORIO Stable Progressive Currency conversation supplies historical background only. The subsequent founder-approved economics and advisory external-review decision govern this edition wherever earlier proposals differ. Private conversational material is not published as evidence of licensing, security, solvency or mobile-money partnerships. This version consolidates the approved decisions with implementation and observed release boundaries available on November 14, 2026.",
+        "References R1-R3 point to project specifications and engineering source; R4-R6 support the limited descriptions of network fees, account abstraction and the underlying asset's independent terms. References to third parties do not assert endorsement or a commercial relationship. Service documentation and terms can change; production integration must verify the exact versions and conditions applicable to its release.",
+        "The paper's version, publication date and source digest should accompany downloadable copies. Material changes to policy, administrative powers, reserve model, supported jurisdictions or production availability require a versioned update and consistent website disclosures. A cached PDF must not silently masquerade as a later accepted deployment specification. The current financial availability state is explicitly disabled."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "id": "R1",
+      "title": "Founder-approved ORIO monetary policy",
+      "url": "https://github.com/wilkont/orio/blob/main/docs/monetary/ORIO_MONETARY_POLICY_PROPOSAL.md"
+    },
+    {
+      "id": "R2",
+      "title": "ORIO monetary execution and ledger integration",
+      "url": "https://github.com/wilkont/orio/blob/main/services/control-foundation/MONETARY_SETTLEMENT_INTEGRATION.md"
+    },
+    {
+      "id": "R3",
+      "title": "ORIO owner-accountable release policy",
+      "url": "https://github.com/wilkont/orio/blob/main/docs/adr/0002-owner-accountable-release-policy.md"
+    },
+    {
+      "id": "R4",
+      "title": "Base network fee documentation",
+      "url": "https://docs.base.org/specifications/transactions/network-fees"
+    },
+    {
+      "id": "R5",
+      "title": "ERC-4337 account abstraction specification",
+      "url": "https://eips.ethereum.org/EIPS/eip-4337"
+    },
+    {
+      "id": "R6",
+      "title": "Circle USDC terms",
+      "url": "https://www.circle.com/legal/usdc-terms"
+    }
+  ]
+}

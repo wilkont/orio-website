@@ -1,6 +1,8 @@
 {
   "publicationDate": "2026-11-14",
   "financialExecutionEnabled": false,
-  "pageCount": 26,
+  "pageCount": 28,
+  "whitepaperVersion": "3.0.1",
+  "whitepaperSourceSHA256": "286701b2d0c0ec7500d8296d69ee55c394b332fa72d090c82fe6757cfd1bffa9",
   "providerEvidenceObservedAt": "2026-11-14T18:44:58.170Z"
 }

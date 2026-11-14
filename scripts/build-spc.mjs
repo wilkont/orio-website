@@ -2,11 +2,13 @@ import {readFile,mkdir,writeFile,copyFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {pages} from '../site/pages.mjs';
+import {enhance,supplemental,productionPages,productionCSS} from './production-pages.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const out=path.join(root,'public/spc-3');
 await mkdir(path.join(out,'assets'),{recursive:true});
 const escape=text=>text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
-const directory=prefix=>'<nav class="directory" aria-label="Explore ORIO">'+pages.map(([slug,title])=>`<a href="${prefix}${slug}/">${escape(title)}</a>`).join('')+'</nav>';
+const directory=prefix=>'<nav class="directory" aria-label="Explore ORIO"><a href="'+prefix+'whitepaper/">Technical whitepaper</a>'+pages.map(([slug,title])=>`<a href="${prefix}${slug}/">${escape(title)}</a>`).join('')+'</nav>';
+const readiness=JSON.parse(await readFile(path.join(root,'site/launch-readiness.json'),'utf8'));
 let home=await readFile(path.join(root,'site/home.html'),'utf8');
 home=home.replace(/proposed /g,'founder-approved ').replace('content="#101f23"','content="#1355e9"');
 home=home.replace('A new architecture<br>for <em>value.</em>','Money designed<br>to <em>progress.</em>');
@@ -24,18 +26,21 @@ home=home.replace('The foundational database work and local tests do not establi
 home=home.replace('<a href="#readiness">Release readiness ↗</a></footer>','<a href="status/">Release status ↗</a></footer>'+directory(''));
 home=home.replace('<script src="app.js"></script>','<script type="module" src="app.mjs"></script>');
 home=home.replace('</head>','<link rel="canonical" href="https://orio.io/"></head>');
-await writeFile(path.join(out,'index.html'),home);
+home=home.replace('<a href="#mechanism">The mechanism</a>','<a href="#mechanism">The mechanism</a><a href="whitepaper/">Whitepaper</a>');
+await writeFile(path.join(out,'index.html'),enhance(home,'','ORIO — Money designed to progress','Explore ORIO monetary economics, the complete whitepaper and verified release status.'));
 for(const [slug,title,subtitle,sections] of pages){
  const links='<div class="doc-actions"><a class="button primary" href="../docs/">Documentation</a><a href="../status/">Release status →</a>'+(slug==='contact'?'<a href="mailto:contact@orio.io">Email contact@orio.io</a>':'')+(['docs','developers','protocol','security','status'].includes(slug)?'<a href="https://github.com/wilkont/orio" rel="noopener">Engineering source ↗</a>':'')+'</div>';
  const html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="'+escape(subtitle)+'"><title>'+escape(title)+' — ORIO</title><link rel="stylesheet" href="../styles.css"><link rel="canonical" href="https://orio.io/'+slug+'/"></head><body><a class="skip" href="#main">Skip to content</a><header><a class="brand" href="../" aria-label="ORIO home"><img class="original-logo" src="../assets/orio-original-blue.png" alt="ORIO"><span class="version">SPC / 3</span></a><nav aria-label="Main navigation"><a href="../how-it-works/">How it works</a><a href="../docs/">Documentation</a><a href="../status/">Status</a></nav><a class="nav-cta" href="../fees/">Pricing and fees ↗</a></header><main id="main" class="wrap document"><p class="eyebrow">ORIO.IO LAB · SPC / 3</p><h1>'+escape(title)+'</h1><p class="lede">'+escape(subtitle)+'</p><p class="release-note"><span class="pill">PRE-LAUNCH</span> Financial services are not enabled.</p>'+sections.map(([heading,text])=>'<section><h2>'+escape(heading)+'</h2><p>'+escape(text)+'</p></section>').join('')+links+'<p class="asof">Publication snapshot: November 14, 2026.</p></main><footer class="wrap"><a class="brand" href="../">ORIO</a><p>ORIO.IO Lab · Informational release</p><a href="../risks/">Risk disclosures</a></footer>'+directory('../')+'</body></html>';
- await mkdir(path.join(out,slug),{recursive:true});await writeFile(path.join(out,slug,'index.html'),html);
+ const complete=html.replace(links,supplemental(slug,readiness)+links);
+ await mkdir(path.join(out,slug),{recursive:true});await writeFile(path.join(out,slug,'index.html'),enhance(complete,'../',title+' — ORIO',subtitle));
 }
 let css=await readFile(path.join(root,'site/styles.css'),'utf8');
 css=css.replace(/@import[^;]+;/g,''); // No external font/analytics request in this static release.
 css+='\n.document{max-width:1000px;margin:auto;padding-top:65px;padding-bottom:65px}.document h1{font-size:clamp(38px,6vw,68px);letter-spacing:-2px;line-height:1.08;margin:20px 0}.document section{margin-top:42px;max-width:740px}.document h2{font-size:25px;letter-spacing:-.5px;margin-bottom:14px}.document section p{font-size:16px;line-height:1.8;color:var(--muted)}.doc-actions{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin-top:45px}.directory{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px!important;padding:35px max(24px,6vw);background:#f3f7fd}.directory a{font-size:12px}.flow-card select{padding:12px;width:100%;border:1px solid #b2c9ed;border-radius:8px;margin:8px 0 22px;color:#102a61;background:#fff;font:inherit}.flow-card label{font-size:12px}.model-warning{font-size:12px}.helper{font-size:12px}.release-note{line-height:1.7}@media(max-width:390px){.hero h1{font-size:44px}.outer{width:300px;height:300px}.middle{width:255px;height:255px}.hero-art{overflow:hidden}}\n';
-await writeFile(path.join(out,'styles.css'),css);
+await writeFile(path.join(out,'styles.css'),css+productionCSS);
 for(const name of ['app.mjs','fees.mjs'])await copyFile(path.join(root,'site',name),path.join(out,name));
 await copyFile(path.join(root,'site/assets/orio-original-blue.png'),path.join(out,'assets/orio-original-blue.png'));
-await writeFile(path.join(out,'release.json'),JSON.stringify({publicationDate:'2026-11-14',financialExecutionEnabled:false,pageCount:26,providerEvidenceObservedAt:'2026-11-14T18:44:58.170Z'},null,2)+'\n');
-await writeFile(path.join(out,'robots.txt'),'User-agent: *\nAllow: /\n');
-console.log('Built 26 static pages in public/spc-3. Financial execution disabled.');
+const publication=await productionPages(root,out,directory,pages,readiness);
+await writeFile(path.join(out,'release.json'),JSON.stringify({publicationDate:'2026-11-14',financialExecutionEnabled:false,pageCount:publication.pageCount,whitepaperVersion:publication.paper.version,whitepaperSourceSHA256:publication.manifest.sourceSHA256,providerEvidenceObservedAt:'2026-11-14T18:44:58.170Z'},null,2)+'\n');
+await writeFile(path.join(out,'robots.txt'),'User-agent: *\nAllow: /\nSitemap: https://orio.io/sitemap.xml\n');
+console.log('Built '+publication.pageCount+' static pages and a source-verified whitepaper. Financial execution disabled.');

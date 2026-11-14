@@ -1,0 +1,17 @@
+{
+  "observedAt": "2026-11-14",
+  "financialExecutionEnabled": false,
+  "externalReviewRequired": false,
+  "items": [
+    {"area": "Public information website", "state": "LIVE", "evidence": "ORIO.IO and www; pinned static content, HTTPS and browser checks passed", "next": "Maintain accurate documentation, accessibility and release evidence"},
+    {"area": "Monetary policy", "state": "APPROVED", "evidence": "Founder-approved policy orio-final-monetary-2026-11-13-v1", "next": "Apply consistently to the actual production deployment"},
+    {"area": "Monetary contracts and ledger", "state": "LOCAL_QUALIFICATION", "evidence": "181 integration tests and 39 contract tests in the recorded baseline", "next": "Deployed code identity, canonical indexing, complete intent adapters and production acceptance"},
+    {"area": "RPC and bundler providers", "state": "TESTNET_READS_PASSED", "evidence": "Alchemy/Infura canonical-finality agreement and Pimlico EntryPoint capability observation", "next": "Custom-contract admission, complete network-cost attribution and failure drills"},
+    {"area": "Customer authentication and consent", "state": "NOT_LAUNCHED", "evidence": "No public SPC 3 account enrollment or signing service is offered", "next": "Qualified identity, authorization, transaction limits, abuse controls and end-to-end customer testing"},
+    {"area": "Wallet recovery operations", "state": "PARTIAL", "evidence": "Guardian/delay/revision contract candidate tested locally", "next": "Enrollment, notifications, compromise/estate handling and user-paid execution integration"},
+    {"area": "Custody and reserves", "state": "UNVERIFIED", "evidence": "No production SPC 3 reserve value or custody arrangement is asserted", "next": "Actual custody, asset ownership, valuation, obligations and reconciled reserve evidence"},
+    {"area": "Financial workload and database", "state": "NOT_QUALIFIED", "evidence": "Historical cloud receipt covers migrations 001/002; later integrations remain separate", "next": "Incremental hosted upgrade, least-privilege access, recoverable backup and restore drill"},
+    {"area": "Operating entity and eligibility", "state": "NOT_ESTABLISHED_FOR_LAUNCH", "evidence": "Brand publication does not establish jurisdiction-specific financial service availability", "next": "Confirmed operating entity, supported jurisdictions, applicable requirements and customer terms/privacy disclosures"},
+    {"area": "Financial release acceptance", "state": "NOT_ACCEPTED", "evidence": "Financial execution is disabled; no acceptance signature is fabricated", "next": "Release-bound accountable legal, security, custody, financial and operations acceptance; outside review is advisory"}
+  ]
+}
