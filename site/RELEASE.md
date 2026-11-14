@@ -1,5 +1,11 @@
 # ORIO website release — November 14, 2026
 
+## Completed public cutover
+
+ORIO.IO and www.orio.io now serve this release from the existing OrioApp host. The original Dot preview's white/blue design, ORIO logo and circular USDC artwork were retained. All32 static files matched the pinned source on each domain:64 origin HTTPS checks and64 independent public HTTPS checks passed. Live browser checks confirmed the design and zero-holder fee calculation. Source and backup identities are in DEPLOYMENT_2026-11-14.json. The legacy API route and TLS configuration were preserved; no DNS, IAM, database or server-reboot change occurred. The authorized Ubuntu shell was logged out after verification.
+
+All59 legacy static files were verified against the archived backup; the old build remains untouched. Six deployment tests cover drift, path restrictions, preservation, commented Nginx examples and rollback control flow. This is not a database recovery drill or a financial launch. The preparation/access limitations below are historical context, superseded for the website cutover by this completed record. Financial workload deployment and qualification remain outstanding.
+
 This is a static informational website, not live financial software. It preserves the owner's existing white/blue branding and authentic ORIO logo. The earlier untracked public/spc-next design is preserved as found. No legacy PHP service or credential is executed.
 
 ## Source and verification

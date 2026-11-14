@@ -1,0 +1,31 @@
+{
+  "status": "LIVE_INFORMATIONAL_WEBSITE",
+  "domains": ["https://orio.io", "https://www.orio.io"],
+  "design": "Original white-and-blue Dot preview with ORIO logo and circular USDC artwork",
+  "sourceCommit": "85efad56b66d010f9b3b76751c0776912054887c",
+  "deploymentHelperCommit": "059d96a8fb8bf59df1498d419f9c280164a1d635",
+  "deploymentHelperSHA256": "5d85b494441dd175464fe5385e8bb0bb27481fa155423b3d6bbe8fd5f557086a",
+  "pageCount": 26,
+  "releaseFileCount": 32,
+  "originVerifiedHTTPSFiles": 64,
+  "publicVerifiedHTTPSFiles": 64,
+  "publicVerificationObservedAt": "2026-11-14T20:28:42.314857+00:00",
+  "backup": {
+    "legacyFileCount": 59,
+    "archiveSHA256": "438e76f6a2b92565fb930e83797d15a03a2006810dfbec564ad629784e0632da",
+    "verification": "Archived regular-file bytes matched every original file before and after backup; original build retained",
+    "state": "/var/backups/orio-spc/20261114T202641Z-85efad56b66d/stage.json"
+  },
+  "activeConfigSHA256": "2b1c970d426b481da28953b82944eb60f5af822cfc4557c48b90c3fcbc01d752",
+  "apiAndTLSConfigurationPreserved": true,
+  "dnsChanged": false,
+  "iamChanged": false,
+  "databaseChanged": false,
+  "serverRebooted": false,
+  "financialExecutionEnabled": false,
+  "verificationLimits": [
+    "Static website publication does not deploy the SPC3 financial workload",
+    "A verified static build archive is not a database backup or a complete disaster-recovery drill",
+    "Legacy API routing was preserved; its financial behavior was not exercised or qualified"
+  ]
+}
