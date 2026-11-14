@@ -57,13 +57,29 @@ def validate_manifest(manifest):
     return manifest
 
 
-def render_config(original, candidate):
+def render_config(original, candidate, manifest=None):
     """Refuse drift; preserve /api and the complete TLS/redirect configuration."""
     candidate_path = candidate.as_posix()
     if not re.fullmatch(r'/var/www/orio-spc/releases/[a-f0-9]{40}', candidate_path):
         raise ValueError('Unexpected candidate root')
     if not re.search(r'(?m)^[ \t]*server_name\s+orio\.io\s+www\.orio\.io\s*;', original):
         raise ValueError('Unexpected virtual host')
+    manifest = manifest or {}
+    previous = manifest.get('previousRoot')
+    if previous is not None:
+        if (not re.fullmatch(r'/var/www/orio-spc/releases/[a-f0-9]{40}', previous)
+                or not re.fullmatch('[a-f0-9]{64}', manifest.get('expectedConfigSHA256', ''))
+                or digest(original.encode()) != manifest['expectedConfigSHA256']):
+            raise ValueError('Previous release or configuration fingerprint differs')
+        root = 'root ' + previous + ';'
+        if original.count(root) != 1:
+            raise ValueError('Unexpected existing document root')
+        if len(re.findall(r'(?m)^[ \t]*try_files \$uri \$uri/ =404;', original)) != 1:
+            raise ValueError('Unexpected existing static routing')
+        result = original.replace(root, 'root ' + candidate_path + ';', 1)
+        if 'error_page 404 /404.html;' not in result:
+            result = result.replace('try_files $uri $uri/ =404;', 'try_files $uri $uri/ =404;\n        error_page 404 /404.html;', 1)
+        return result
     root = 'root /var/www/html/orio/build;'
     if original.count(root) != 1:
         raise ValueError('Unexpected existing document root')
@@ -136,19 +152,20 @@ def verify_candidate(candidate, manifest):
         if path.is_symlink() or file_digest(path) != checksum:
             raise ValueError('Candidate file verification failed')
     release = json.loads((candidate / 'release.json').read_text())
-    if release.get('financialExecutionEnabled') is not False or release.get('pageCount') != 26:
+    if release.get('financialExecutionEnabled') is not False or release.get('pageCount') != sum(1 for name in manifest['files'] if name == 'index.html' or name.endswith('/index.html')):
         raise ValueError('Candidate publication state differs')
 
 
 def stage(manifest):
     validate_manifest(manifest)
-    if CONFIG.is_symlink() or not CONFIG.is_file() or not OLD_ROOT.is_dir():
+    old_root = Path(manifest.get('previousRoot', str(OLD_ROOT)))
+    if CONFIG.is_symlink() or not CONFIG.is_file() or not old_root.is_dir():
         raise ValueError('Inspected configuration or site no longer exists')
     original = CONFIG.read_bytes()
     candidate = RELEASES / manifest['commit']
-    render_config(original.decode(), candidate)  # Validate all routing assumptions before writes.
-    old_files = sorted(p for p in OLD_ROOT.rglob('*') if p.is_file())
-    if any(p.is_symlink() for p in OLD_ROOT.rglob('*')) or not old_files:
+    render_config(original.decode(), candidate, manifest)  # Validate all routing assumptions before writes.
+    old_files = sorted(p for p in old_root.rglob('*') if p.is_file())
+    if any(p.is_symlink() for p in old_root.rglob('*')) or not old_files:
         raise ValueError('Legacy build contains links or no files')
     required = sum(p.stat().st_size for p in old_files) * 2 + 64 * 1024 * 1024
     if shutil.disk_usage('/').free < required:
@@ -158,10 +175,10 @@ def stage(manifest):
     backup.mkdir(mode=0o700)
     (backup / 'nginx-default.original').write_bytes(original)
     os.chmod(backup / 'nginx-default.original', 0o600)
-    before = {p.relative_to(OLD_ROOT).as_posix(): file_digest(p) for p in old_files}
+    before = {p.relative_to(old_root).as_posix(): file_digest(p) for p in old_files}
     archive = backup / 'legacy-build.tar.gz'
     with tarfile.open(archive, 'w:gz') as handle:
-        handle.add(OLD_ROOT, arcname='legacy-build', recursive=True)
+        handle.add(old_root, arcname='legacy-build', recursive=True)
     os.chmod(archive, 0o600)
     restored = {}
     with tarfile.open(archive, 'r:gz') as handle:
@@ -169,7 +186,7 @@ def stage(manifest):
             if entry.isfile():
                 stream = handle.extractfile(entry)
                 restored[entry.name.removeprefix('legacy-build/')] = stream_digest(stream)
-    after = {p.relative_to(OLD_ROOT).as_posix(): file_digest(p) for p in OLD_ROOT.rglob('*') if p.is_file()}
+    after = {p.relative_to(old_root).as_posix(): file_digest(p) for p in old_root.rglob('*') if p.is_file()}
     if before != restored or before != after or CONFIG.read_bytes() != original:
         raise ValueError('Backup verification or configuration consistency failed')
     checked_directory(RELEASES)
@@ -228,10 +245,18 @@ def verify_https(manifest):
             if not separator or digest(body) != checksum:
                 raise ValueError('Served content differs from pinned release')
             mime = {'html': 'text/html', 'css': 'text/css', 'mjs': 'application/javascript',
-                    'png': 'image/png', 'json': 'application/json', 'txt': 'text/plain'}[name.rsplit('.', 1)[1]]
-            if not re.search(r'^content-type:\s*' + re.escape(mime) + r'(?:;|\s|$)', headers.decode().lower(), re.M):
+                    'png': 'image/png', 'json': 'application/json', 'txt': 'text/plain', 'pdf': 'application/pdf', 'xml': '(?:application|text)/xml'}[name.rsplit('.', 1)[1]]
+            if not re.search(r'^content-type:\s*' + mime + r'(?:;|\s|$)', headers.decode().lower(), re.M):
                 raise ValueError('Served content type differs')
             verified += 1
+    if '404.html' in manifest['files']:
+        for domain in ['orio.io', 'www.orio.io']:
+            response = run('curl', '--silent', '--show-error', '--max-time', '15',
+                           '--noproxy', '*', '--resolve', domain + ':443:127.0.0.1',
+                           '--write-out', '\n%{http_code}', 'https://' + domain + '/orio-missing-' + manifest['commit'])
+            body, _, code = response.rpartition(b'\n')
+            if code != b'404' or digest(body) != manifest['files']['404.html']:
+                raise ValueError('Branded missing-page status differs')
     return verified
 
 
@@ -264,7 +289,7 @@ def activate(state):
         raise ValueError('Configuration backup differs')
     if file_digest(state.parent / 'legacy-build.tar.gz') != receipt['legacyArchiveSHA256']:
         raise ValueError('Legacy archive differs')
-    updated = render_config(original.decode(), candidate).encode()
+    updated = render_config(original.decode(), candidate, manifest).encode()
     metadata = CONFIG.stat()
     count = perform_cutover(original, updated, metadata, lambda: verify_https(manifest))
     result = {'status': 'DEPLOYED_HTTPS_VERIFIED', 'sourceCommit': manifest['commit'],

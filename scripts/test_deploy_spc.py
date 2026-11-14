@@ -33,6 +33,23 @@ class DeploymentGuards(unittest.TestCase):
         self.assertIn(example, rendered)
         self.assertIn('root /var/www/orio-spc/releases/' + 'a' * 40 + ';', rendered)
 
+    def test_incremental_release_requires_fingerprint_and_preserves_routes(self):
+        first = Path('/var/www/orio-spc/releases/' + 'a' * 40)
+        second = Path('/var/www/orio-spc/releases/' + 'b' * 40)
+        current = deployment.render_config(CONFIG, first)
+        manifest = {'previousRoot': str(first).replace('\\', '/'),
+                    'expectedConfigSHA256': deployment.digest(current.encode())}
+        updated = deployment.render_config(current, second, manifest)
+        self.assertIn('root ' + second.as_posix() + ';', updated)
+        self.assertEqual(updated.count('location = /app.mjs'), 1)
+        self.assertIn('error_page 404 /404.html;', updated)
+        self.assertEqual(updated.replace(second.as_posix(), first.as_posix()).replace('\n        error_page 404 /404.html;', ''), current)
+        for wrong in [dict(manifest, expectedConfigSHA256='0'*64),
+                      dict(manifest, previousRoot='/etc'),
+                      dict(manifest, previousRoot='/var/www/orio-spc/releases/'+'c'*40)]:
+            with self.assertRaises(ValueError):
+                deployment.render_config(current, second, wrong)
+
     def test_failed_https_verification_restores_original_before_reload(self):
         writes, commands = [], []
         def verify():
